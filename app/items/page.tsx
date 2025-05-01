@@ -154,35 +154,35 @@ function InventoryDisplay() {
   };
 
   // Handle updating a grid item
-  const handleGridItemUpdate = (updatedItem: InventoryItem) => {
+  const handleGridItemUpdate = (
+    updatedItem: InventoryItem & { currentCount?: number }
+  ) => {
     // Update the items array with the updated item
     const updatedItems = items.map((item) =>
       item.id === updatedItem.id ? updatedItem : item
     );
     setItems(updatedItems);
 
-    // Now include ALL items in countedItems, not just the ones manually counted
-    // For items that weren't manually counted, use their current values from the database
+    // Now include ALL items in countedItems with proper current quantity values
     const allCountedItems = updatedItems
       .filter((item) => (item["min stock amount"] || 0) > 0)
       .map((item) => {
+        // For TypeScript, create a new object with the optional currentCount property
+        const countedItem = { ...item } as InventoryItem & {
+          currentCount?: number;
+        };
+
         if (item.id === updatedItem.id) {
           // This is the item we just counted
-          return updatedItem;
-        }
-        // Find if this item was previously manually counted
-        const existingItem = countedItems.find(
-          (counted) => counted.id === item.id
-        );
-        if (existingItem) {
-          return existingItem;
+          countedItem.currentCount =
+            updatedItem.currentCount || updatedItem["current quantity"] || 0;
+        } else {
+          // For other items, use the database value
+          countedItem.currentCount = item["current quantity"] || 0;
         }
 
-        // For other items, return them as is from the database
-        // This ensures we have the most recent data for all items
-        return item;
+        return countedItem;
       });
-
     // Set all items as "counted" items so they appear in the receipt
     setCountedItems(allCountedItems);
 

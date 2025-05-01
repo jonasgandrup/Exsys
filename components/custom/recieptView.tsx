@@ -56,19 +56,27 @@ export default function ReceiptView({ countedItems }: ReceiptViewProps) {
         .filter((item) => {
           const toBuy = Math.max(
             0,
-            (item["min stock amount"] || 0) - (item.currentCount || 0)
+            (item["min stock amount"] || 0) -
+              (item["current quantity"] || item.currentCount || 0)
           );
           return toBuy > 0;
         })
-        .sort((a, b) => (a["default store"] || "").localeCompare(b["default store"] || ""))
+        .sort((a, b) =>
+          (a["default store"] || "").localeCompare(b["default store"] || "")
+        )
         .forEach((item) => {
           const toBuy = Math.max(
             0,
-            (item["min stock amount"] || 0) - (item.currentCount || 0)
+            (item["min stock amount"] || 0) -
+              (item["current quantity"] || item.currentCount || 0)
           );
 
           doc.text(item.name.substring(0, 30), 20, y);
-          doc.text((item.currentCount || 0).toString(), 100, y);
+          doc.text(
+            (item["current quantity"] || item.currentCount || 0).toString(),
+            100,
+            y
+          );
           doc.text((item["min stock amount"] || 0).toString(), 130, y);
           doc.text(toBuy.toString(), 160, y);
           doc.text((item["default store"] || "").substring(0, 15), 180, y);
@@ -108,8 +116,28 @@ export default function ReceiptView({ countedItems }: ReceiptViewProps) {
 
   // Count items that need purchasing
   const itemsNeedingPurchase = countedItems.filter(
-    (item) => (item["min stock amount"] || 0) - (item.currentCount || 0) > 0
+    (item) =>
+      (item["min stock amount"] || 0) -
+        (item["current quantity"] || item.currentCount || 0) >
+      0
   ).length;
+
+  // And in the items mapping logic:
+  filteredItems.map((item) => {
+    const toBuy = Math.max(
+      0,
+      (item["min stock amount"] || 0) -
+        (item["current quantity"] || item.currentCount || 0)
+    );
+    return (
+      <div
+        key={item.id}
+        className="bg-gray-50 rounded-lg p-3 flex items-center justify-between"
+      >
+        {/* Rest of your component */}
+      </div>
+    );
+  });
 
   return (
     <Card className="w-full">
@@ -167,7 +195,8 @@ export default function ReceiptView({ countedItems }: ReceiptViewProps) {
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <p className="font-medium">
-                        {item.currentCount || 0} in stock
+                        {item["current quantity"] || item.currentCount || 0} in
+                        stock
                       </p>
                       <p className="text-sm text-muted-foreground">
                         Min: {item["min stock amount"] || 0}
