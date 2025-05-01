@@ -40,8 +40,6 @@ type InventoryItem = {
 };
 
 export default function Page() {
-  // Since we're now in a client component, we need to handle data fetching differently
-  // You'll need to use React hooks like useEffect to fetch data
   return (
     <div className="container mx-auto w-full py-6">
       <InventoryDisplay />
@@ -56,6 +54,10 @@ function InventoryDisplay() {
 
   const [countingComplete, setCountingComplete] = useState(false);
   const [countedItems, setCountedItems] = useState<InventoryItem[]>([]);
+  const [activeTab, setActiveTab] = useState("grid");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   // Use useEffect to fetch data when the component mounts
   React.useEffect(() => {
@@ -75,9 +77,13 @@ function InventoryDisplay() {
       item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item["product group"].toLowerCase().includes(searchQuery.toLowerCase())
   );
-  const countableItems = filteredItems.filter(
-    (item) => (item["min stock amount"] || 0) > 0
-  );
+  // const countableItems = filteredItems.filter(
+  //   (item) => (item["min stock amount"] || 0) > 0
+  // );
+  //todo: for testing only!!!
+  const countableItems = filteredItems
+    .filter((item) => (item["min stock amount"] || 0) > 0)
+    .slice(0, 10); // Limit to first 10 items for testing
 
   // Functions for navigating between items
   const goToNextItem = () => {
@@ -92,15 +98,6 @@ function InventoryDisplay() {
     }
   };
 
-  // Function to update item count
-  // const updateItemCount = (updatedItem: InventoryItem) => {
-  //   const newItems = [...items];
-  //   const index = newItems.findIndex((item) => item.id === updatedItem.id);
-  //   if (index !== -1) {
-  //     newItems[index] = updatedItem;
-  //     setItems(newItems);
-  //   }
-  // };
   const updateItemCount = (updatedItem: InventoryItem) => {
     // Update the countedItems array by adding this item
     const existingItemIndex = countedItems.findIndex(
@@ -129,6 +126,17 @@ function InventoryDisplay() {
     setCountingComplete(false);
   };
 
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const paginatedItems = filteredItems.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  //Todo:
   // Helper function to determine status color based on product group
   function getStatusColor(productGroup: string) {
     switch (productGroup) {
@@ -162,15 +170,11 @@ function InventoryDisplay() {
       </div>
 
       {/* Tabs for different views */}
-      <Tabs defaultValue="grid">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="grid">
             <LayoutGrid className="mr-2 h-4 w-4" />
             Grid
-          </TabsTrigger>
-          <TabsTrigger value="list">
-            <FileText className="mr-2 h-4 w-4" />
-            List
           </TabsTrigger>
           <TabsTrigger value="count">
             <Package className="mr-2 h-4 w-4" />
@@ -185,8 +189,8 @@ function InventoryDisplay() {
         {/* Grid View */}
         <TabsContent value="grid">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredItems.length > 0 ? (
-              filteredItems.map((item) => (
+            {paginatedItems.length > 0 ? (
+              paginatedItems.map((item) => (
                 <div
                   key={item.id}
                   className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
@@ -213,71 +217,56 @@ function InventoryDisplay() {
               </p>
             )}
           </div>
-        </TabsContent>
+          {/* Pagination Controls */}
+          {filteredItems.length > 0 && (
+            <div className="flex items-center justify-center space-x-2 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
 
-        {/* List View */}
-        <TabsContent value="list">
-          <div className="border rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Location
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Min Stock
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Group
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredItems.length > 0 ? (
-                  filteredItems.map((item) => (
-                    <tr key={item.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div
-                            className={`h-3 w-3 rounded-full mr-2 ${getStatusColor(
-                              item["product group"]
-                            )}`}
-                          ></div>
-                          {item.name}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {item.location}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {item["min stock amount"]}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {item["product group"]}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="px-6 py-4 text-center text-gray-500"
-                    >
-                      No items found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((page) => {
+                    // Show current page, first page, last page, and pages around current
+                    return (
+                      page === 1 ||
+                      page === totalPages ||
+                      Math.abs(page - currentPage) <= 1
+                    );
+                  })
+                  .map((page, i, arr) => (
+                    <React.Fragment key={page}>
+                      {i > 0 && arr[i - 1] !== page - 1 && (
+                        <span className="px-2">...</span>
+                      )}
+                      <Button
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => goToPage(page)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {page}
+                      </Button>
+                    </React.Fragment>
+                  ))}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </TabsContent>
-        {/* Count View */}
-        {/* <TabsContent value="count">
-          {countableItems.length > 0 ? (
-            <div className="space-y-4"> */}
         {/* Count View */}
         <TabsContent value="count">
           {countingComplete ? (
@@ -288,13 +277,7 @@ function InventoryDisplay() {
                 <Button onClick={resetCounting} variant="outline">
                   Start Over
                 </Button>
-                <Button
-                  onClick={() =>
-                    (
-                      document.querySelector('[value="receipt"]') as HTMLElement
-                    )?.click()
-                  }
-                >
+                <Button onClick={() => setActiveTab("receipt")}>
                   View Receipt
                 </Button>
               </div>
