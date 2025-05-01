@@ -245,13 +245,6 @@ export default function ItemCountCard({
                   onValueChange={handleSliderChange}
                   className="my-2"
                 />
-                <div className="flex justify-between text-xs text-gray-500 mt-1 md:text-sm lg:text-base">
-                  <span>0</span>
-                  <span>25</span>
-                  <span>50</span>
-                  <span>75</span>
-                  <span>100</span>
-                </div>
               </div>
               <Button
                 variant="outline"
