@@ -18,6 +18,8 @@ import {
   FileText,
   LayoutGrid,
   Receipt,
+  Filter,
+  X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -37,6 +39,7 @@ type InventoryItem = {
   "quantity unit stock": string;
   "product group": string;
   "default store": string;
+  "current quantity"?: number;
 };
 
 export default function Page() {
@@ -60,12 +63,20 @@ function InventoryDisplay() {
   const itemsPerPage = 12;
   const [selectedGridItem, setSelectedGridItem] =
     useState<InventoryItem | null>(null);
+  const [filterGroup, setFilterGroup] = useState<string | null>(null);
 
   // Use useEffect to fetch data when the component mounts
   React.useEffect(() => {
     async function fetchData() {
       const supabase = await createClient();
       const { data } = await supabase.from("notes").select();
+      // Extract unique product groups
+      if (data && data.length > 0) {
+        const uniqueGroups = Array.from(
+          new Set(data.map((item) => item["product group"]))
+        );
+        console.log("Unique product groups:", uniqueGroups);
+      }
       setItems(data || []);
     }
 
@@ -75,9 +86,12 @@ function InventoryDisplay() {
   // Filter items based on search query
   const filteredItems = items.filter(
     (item) =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item["product group"].toLowerCase().includes(searchQuery.toLowerCase())
+      // Apply product group filter first if it exists
+      (filterGroup === null || item["product group"] === filterGroup) &&
+      // Then apply search query filter
+      (item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item["product group"].toLowerCase().includes(searchQuery.toLowerCase()))
   );
   // const countableItems = filteredItems.filter(
   //   (item) => (item["min stock amount"] || 0) > 0
@@ -117,6 +131,13 @@ function InventoryDisplay() {
     // Continue with existing functionality for countableItems
     const updatedCountableItems = [...countableItems];
     updatedCountableItems[currentItemIndex] = updatedItem;
+
+    // Remove the React.useMemo hook and calculate directly
+    // const uniqueProductGroups = React.useMemo(() => {
+    //   return Array.from(
+    //     new Set(items.map((item) => item["product group"]))
+    //   ).sort();
+    // }, [items]);
 
     // Check if this was the last item
     if (currentItemIndex === countableItems.length - 1) {
@@ -183,24 +204,60 @@ function InventoryDisplay() {
     setCurrentPage(page);
   };
 
-  //Todo:
-  // Helper function to determine status color based on product group
-  function getStatusColor(productGroup: string) {
-    switch (productGroup) {
-      case "Spejlæg":
-        return "bg-yellow-400";
-      case "Normal Øl":
-        return "bg-green-500";
-      default:
-        return "bg-green-500";
-    }
+  function ProductGroupTag({ group }: { group: string }) {
+    const getTagColors = (productGroup: string) => {
+      switch (productGroup) {
+        // Original groups
+        case "Spejlæg":
+          return "bg-yellow-400 text-yellow-900";
+        case "Normal Øl":
+          return "bg-green-500 text-green-900";
+
+        // New groups from your list
+        case "Generelle flasker":
+          return "bg-blue-400 text-blue-900";
+        case "Specielle flasker":
+          return "bg-purple-400 text-purple-900";
+        case "Postmix":
+          return "bg-emerald-400 text-emerald-900";
+        case "Diverse":
+          return "bg-gray-400 text-gray-900";
+        case "Shots":
+          return "bg-red-400 text-red-900";
+        case "Læsk":
+          return "bg-sky-400 text-sky-900";
+        case "Opblanding":
+          return "bg-indigo-400 text-indigo-900";
+        case "Fustager":
+          return "bg-teal-400 text-teal-900";
+        case "Sirup":
+          return "bg-pink-400 text-pink-900";
+        case "RTD":
+          return "bg-orange-400 text-orange-900";
+        case "Special øl":
+          return "bg-lime-400 text-lime-900";
+        case "Snacks":
+          return "bg-rose-400 text-rose-900";
+
+        default:
+          return "bg-slate-400 text-slate-900";
+      }
+    };
+
+    return (
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-medium ${getTagColors(group)}`}
+      >
+        {group}
+      </span>
+    );
   }
 
   // Rest of your component remains the same
   return (
     <div className="flex flex-col space-y-4">
       {/* Search and filter section */}
-      <div className="flex items-center space-x-2">
+      {/* <div className="flex items-center space-x-2">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
           <Input
@@ -210,11 +267,54 @@ function InventoryDisplay() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+        </div> */}
+
+      {/* Group Filter Dropdown */}
+      {/* <div className="relative">
+          <Button
+            variant="outline"
+            className={`flex items-center gap-2 ${filterGroup ? "pr-8" : ""}`} // Add padding-right when filter is active
+            onClick={() => document.getElementById("groupFilter")?.click()}
+          >
+            <Filter className="h-4 w-4" />
+            {filterGroup ? (
+              <span className="max-w-[150px] truncate">{filterGroup}</span> // Increased max width from 100px to 150px
+            ) : (
+              "Filter Group"
+            )}
+          </Button> */}
+
+      {/* Move the clear button outside the parent button */}
+      {/* {filterGroup && (
+            <div
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 p-0 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer hover:bg-gray-300"
+              style={{ marginRight: "2px" }} // Add extra margin to the right
+              onClick={(e) => {
+                e.stopPropagation();
+                setFilterGroup(null);
+              }}
+            >
+              <X className="h-3 w-3" />
+            </div>
+          )} */}
+
+      {/* <select
+            id="groupFilter"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            value={filterGroup || ""}
+            onChange={(e) => setFilterGroup(e.target.value || null)}
+          >
+            <option value="">All Groups</option>
+            {Array.from(new Set(items.map((item) => item["product group"])))
+              .sort()
+              .map((group) => (
+                <option key={group} value={group}>
+                  {group}
+                </option>
+              ))}
+          </select>
         </div>
-        {/*<Button variant="outline" size="icon">
-          <ArrowUpDown className="h-4 w-4" />
-        </Button> */}
-      </div>
+      </div> */}
 
       {/* Tabs for different views */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -232,6 +332,66 @@ function InventoryDisplay() {
             Receipt
           </TabsTrigger>
         </TabsList>
+        {/* Only show search and filter when grid tab is active */}
+        {activeTab === "grid" && (
+          <div className="flex items-center space-x-2 mt-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+              <Input
+                type="search"
+                placeholder="Search items..."
+                className="pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* Group Filter Dropdown */}
+            <div className="relative">
+              <Button
+                variant="outline"
+                className={`flex items-center gap-2 ${filterGroup ? "pr-8" : ""}`}
+                onClick={() => document.getElementById("groupFilter")?.click()}
+              >
+                <Filter className="h-4 w-4" />
+                {filterGroup ? (
+                  <span className="max-w-[150px] truncate">{filterGroup}</span>
+                ) : (
+                  "Filter Group"
+                )}
+              </Button>
+
+              {filterGroup && (
+                <div
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 p-0 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer hover:bg-gray-300"
+                  style={{ marginRight: "2px" }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFilterGroup(null);
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </div>
+              )}
+
+              <select
+                id="groupFilter"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                value={filterGroup || ""}
+                onChange={(e) => setFilterGroup(e.target.value || null)}
+              >
+                <option value="">All Groups</option>
+                {Array.from(new Set(items.map((item) => item["product group"])))
+                  .sort()
+                  .map((group) => (
+                    <option key={group} value={group}>
+                      {group}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+        )}
 
         {/* Grid View */}
 
@@ -253,19 +413,18 @@ function InventoryDisplay() {
                       className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
                       onClick={() => handleGridItemClick(item)}
                     >
-                      <div className="flex items-center space-x-2">
-                        <div
-                          className={`h-3 w-3 rounded-full ${getStatusColor(
-                            item["product group"]
-                          )}`}
-                        ></div>
+                      <div className="flex flex-col space-y-2">
+                        <div>
+                          <ProductGroupTag group={item["product group"]} />
+                        </div>
                         <h3 className="font-medium">{item.name}</h3>
                       </div>
                       <div className="mt-2 text-sm text-gray-600">
+                        <p>
+                          Current stock: {item["current quantity"] ?? "N/A"}
+                        </p>
                         <p>Location: {item.location}</p>
                         <p>Min stock: {item["min stock amount"]}</p>
-                        <p>Unit: {item["quantity unit stock"]}</p>
-                        <p>Group: {item["product group"]}</p>
                       </div>
                     </div>
                   ))
@@ -394,13 +553,13 @@ function InventoryDisplay() {
 }
 
 // Helper function to determine status color based on product group
-function getStatusColor(productGroup: string) {
-  switch (productGroup) {
-    case "Spejlæg":
-      return "bg-yellow-400";
-    case "Normal Øl":
-      return "bg-green-500";
-    default:
-      return "bg-green-500";
-  }
-}
+// function getStatusColor(productGroup: string) {
+//   switch (productGroup) {
+//     case "Spejlæg":
+//       return "bg-yellow-400";
+//     case "Normal Øl":
+//       return "bg-green-500";
+//     default:
+//       return "bg-green-500";
+//   }
+// }
