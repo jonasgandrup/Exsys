@@ -60,6 +60,7 @@ export default function ReceiptView({ countedItems }: ReceiptViewProps) {
           );
           return toBuy > 0;
         })
+        .sort((a, b) => (a["default store"] || "").localeCompare(b["default store"] || ""))
         .forEach((item) => {
           const toBuy = Math.max(
             0,
