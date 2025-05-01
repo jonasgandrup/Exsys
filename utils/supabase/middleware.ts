@@ -22,33 +22,39 @@ export const updateSession = async (request: NextRequest) => {
           },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value }) =>
-              request.cookies.set(name, value),
+              request.cookies.set(name, value)
             );
             response = NextResponse.next({
               request,
             });
             cookiesToSet.forEach(({ name, value, options }) =>
-              response.cookies.set(name, value, options),
+              response.cookies.set(name, value, options)
             );
           },
         },
-      },
+      }
     );
 
     // This will refresh session if expired - required for Server Components
     // https://supabase.com/docs/guides/auth/server-side/nextjs
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    const pathname = request.nextUrl.pathname
+    const pathname = request.nextUrl.pathname;
 
     // Redirect logic
-  if (!user && pathname !== '/sign-in') {
-    return NextResponse.redirect(new URL('/sign-in', request.url))
-  }
+    if (!user && pathname !== "/sign-in") {
+      return NextResponse.redirect(new URL("/sign-in", request.url));
+    }
 
-  if (user && pathname === '/sign-in') {
-    return NextResponse.redirect(new URL('/items', request.url))
-  }
+    if (user && pathname === "/sign-in") {
+      return NextResponse.redirect(new URL("/items", request.url));
+    }
+
+    if (user && pathname === "/") {
+      return NextResponse.redirect(new URL("/items", request.url));
+    }
 
     return response;
   } catch (e) {
