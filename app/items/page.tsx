@@ -180,13 +180,14 @@ function InventoryDisplay() {
             <Package className="mr-2 h-4 w-4" />
             Count
           </TabsTrigger>
-          <TabsTrigger value="receipt" disabled={!countingComplete}>
+          {/*<TabsTrigger value="receipt" disabled={!countingComplete}>
             <Receipt className="mr-2 h-4 w-4" />
             Receipt
-          </TabsTrigger>
+          </TabsTrigger> */}
         </TabsList>
 
         {/* Grid View */}
+        
         <TabsContent value="grid">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {paginatedItems.length > 0 ? (
