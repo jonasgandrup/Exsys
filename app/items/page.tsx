@@ -168,21 +168,22 @@ function InventoryDisplay() {
             <LayoutGrid className="mr-2 h-4 w-4" />
             Grid
           </TabsTrigger>
-          <TabsTrigger value="list">
+          {/*<TabsTrigger value="list">
             <FileText className="mr-2 h-4 w-4" />
             List
-          </TabsTrigger>
+          </TabsTrigger>*/}
           <TabsTrigger value="count">
             <Package className="mr-2 h-4 w-4" />
             Count
           </TabsTrigger>
-          <TabsTrigger value="receipt" disabled={!countingComplete}>
+          {/*<TabsTrigger value="receipt" disabled={!countingComplete}>
             <Receipt className="mr-2 h-4 w-4" />
             Receipt
-          </TabsTrigger>
+          </TabsTrigger> */}
         </TabsList>
 
         {/* Grid View */}
+        
         <TabsContent value="grid">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredItems.length > 0 ? (
@@ -213,10 +214,10 @@ function InventoryDisplay() {
               </p>
             )}
           </div>
-        </TabsContent>
+        </TabsContent> 
 
         {/* List View */}
-        <TabsContent value="list">
+        {/*<TabsContent value="list">
           <div className="border rounded-lg overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -273,7 +274,8 @@ function InventoryDisplay() {
               </tbody>
             </table>
           </div>
-        </TabsContent>
+        </TabsContent> */}
+
         {/* Count View */}
         {/* <TabsContent value="count">
           {countableItems.length > 0 ? (
