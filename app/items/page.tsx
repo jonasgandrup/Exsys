@@ -84,15 +84,19 @@ function InventoryDisplay() {
   }, []);
 
   // Filter items based on search query
-  const filteredItems = items.filter(
-    (item) =>
-      // Apply product group filter first if it exists
-      (filterGroup === null || item["product group"] === filterGroup) &&
-      // Then apply search query filter
-      (item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item["product group"].toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredItems = items
+    .filter(
+      (item) =>
+        // Apply product group filter first if it exists
+        (filterGroup === null || item["product group"] === filterGroup) &&
+        // Then apply search query filter
+        (item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item["product group"]
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()))
+    )
+    .sort((a, b) => a.id - b.id);
   // const countableItems = filteredItems.filter(
   //   (item) => (item["min stock amount"] || 0) > 0
   // );
