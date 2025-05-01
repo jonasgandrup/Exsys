@@ -58,6 +58,8 @@ function InventoryDisplay() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
+  const [selectedGridItem, setSelectedGridItem] =
+    useState<InventoryItem | null>(null);
 
   // Use useEffect to fetch data when the component mounts
   React.useEffect(() => {
@@ -125,6 +127,51 @@ function InventoryDisplay() {
     setCurrentItemIndex(0);
     setCountingComplete(false);
   };
+  // Handle grid item click
+  const handleGridItemClick = (item: InventoryItem) => {
+    setSelectedGridItem(item);
+  };
+
+  // Handle updating a grid item
+  const handleGridItemUpdate = (updatedItem: InventoryItem) => {
+    // Update the items array with the updated item
+    const updatedItems = items.map((item) =>
+      item.id === updatedItem.id ? updatedItem : item
+    );
+    setItems(updatedItems);
+
+    // Now include ALL items in countedItems, not just the ones manually counted
+    // For items that weren't manually counted, use their current values from the database
+    const allCountedItems = updatedItems
+      .filter((item) => (item["min stock amount"] || 0) > 0)
+      .map((item) => {
+        if (item.id === updatedItem.id) {
+          // This is the item we just counted
+          return updatedItem;
+        }
+        // Find if this item was previously manually counted
+        const existingItem = countedItems.find(
+          (counted) => counted.id === item.id
+        );
+        if (existingItem) {
+          return existingItem;
+        }
+
+        // For other items, return them as is from the database
+        // This ensures we have the most recent data for all items
+        return item;
+      });
+
+    // Set all items as "counted" items so they appear in the receipt
+    setCountedItems(allCountedItems);
+
+    // After updating, navigate to receipt view and clear selected item
+    setSelectedGridItem(null);
+    setActiveTab("receipt");
+
+    // Enable receipt tab
+    setCountingComplete(true);
+  };
 
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
   const paginatedItems = filteredItems.slice(
@@ -189,83 +236,97 @@ function InventoryDisplay() {
         {/* Grid View */}
 
         <TabsContent value="grid">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {paginatedItems.length > 0 ? (
-              paginatedItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-center space-x-2">
+          {selectedGridItem ? (
+            <ItemCountCard
+              item={selectedGridItem}
+              onUpdateItem={handleGridItemUpdate}
+              mode="single"
+              onClose={() => setSelectedGridItem(null)}
+            />
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {paginatedItems.length > 0 ? (
+                  paginatedItems.map((item) => (
                     <div
-                      className={`h-3 w-3 rounded-full ${getStatusColor(
-                        item["product group"]
-                      )}`}
-                    ></div>
-                    <h3 className="font-medium">{item.name}</h3>
-                  </div>
-                  <div className="mt-2 text-sm text-gray-600">
-                    <p>Location: {item.location}</p>
-                    <p>Min stock: {item["min stock amount"]}</p>
-                    <p>Unit: {item["quantity unit stock"]}</p>
-                    <p>Group: {item["product group"]}</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="col-span-full text-center py-4 text-gray-500">
-                No items found
-              </p>
-            )}
-          </div>
-          {/* Pagination Controls */}
-          {filteredItems.length > 0 && (
-            <div className="flex items-center justify-center space-x-2 mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </Button>
-
-              <div className="flex items-center space-x-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter((page) => {
-                    // Show current page, first page, last page, and pages around current
-                    return (
-                      page === 1 ||
-                      page === totalPages ||
-                      Math.abs(page - currentPage) <= 1
-                    );
-                  })
-                  .map((page, i, arr) => (
-                    <React.Fragment key={page}>
-                      {i > 0 && arr[i - 1] !== page - 1 && (
-                        <span className="px-2">...</span>
-                      )}
-                      <Button
-                        variant={currentPage === page ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => goToPage(page)}
-                        className="w-8 h-8 p-0"
-                      >
-                        {page}
-                      </Button>
-                    </React.Fragment>
-                  ))}
+                      key={item.id}
+                      className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => handleGridItemClick(item)}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div
+                          className={`h-3 w-3 rounded-full ${getStatusColor(
+                            item["product group"]
+                          )}`}
+                        ></div>
+                        <h3 className="font-medium">{item.name}</h3>
+                      </div>
+                      <div className="mt-2 text-sm text-gray-600">
+                        <p>Location: {item.location}</p>
+                        <p>Min stock: {item["min stock amount"]}</p>
+                        <p>Unit: {item["quantity unit stock"]}</p>
+                        <p>Group: {item["product group"]}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="col-span-full text-center py-4 text-gray-500">
+                    No items found
+                  </p>
+                )}
               </div>
+              {/* Pagination Controls */}
+              {filteredItems.length > 0 && (
+                <div className="flex items-center justify-center space-x-2 mt-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </Button>
-            </div>
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter((page) => {
+                        // Show current page, first page, last page, and pages around current
+                        return (
+                          page === 1 ||
+                          page === totalPages ||
+                          Math.abs(page - currentPage) <= 1
+                        );
+                      })
+                      .map((page, i, arr) => (
+                        <React.Fragment key={page}>
+                          {i > 0 && arr[i - 1] !== page - 1 && (
+                            <span className="px-2">...</span>
+                          )}
+                          <Button
+                            variant={
+                              currentPage === page ? "default" : "outline"
+                            }
+                            size="sm"
+                            onClick={() => goToPage(page)}
+                            className="w-8 h-8 p-0"
+                          >
+                            {page}
+                          </Button>
+                        </React.Fragment>
+                      ))}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
         {/* Count View */}

@@ -29,12 +29,14 @@ export type InventoryItem = {
 interface ItemCountCardProps {
   item: InventoryItem;
   onUpdateItem: (item: InventoryItem) => void;
-  onNext: () => void;
-  onBack: () => void;
-  progress: {
+  onNext?: () => void;
+  onBack?: () => void;
+  progress?: {
     current: number;
     total: number;
   };
+  mode?: "navigation" | "single"; // Which mode to render
+  onClose?: () => void; // For closing in single mode
 }
 
 export default function ItemCountCard({
@@ -43,16 +45,26 @@ export default function ItemCountCard({
   onNext,
   onBack,
   progress,
+  mode = "navigation", // Default to navigation mode
+  onClose,
 }: ItemCountCardProps) {
   const [stockCount, setStockCount] = useState<number>(0);
   const [sliderValue, setSliderValue] = useState<number>(50);
 
   // Update state when item changes
   useEffect(() => {
-    // Set initial count to min stock amount or 0
-    setStockCount(item["min stock amount"] || 0);
-    // Set slider to middle position initially
-    setSliderValue(50);
+    // Initialize with current count if available, otherwise min stock amount or 0
+    setStockCount(
+      item.currentCount !== undefined
+        ? item.currentCount
+        : item["min stock amount"] || 0
+    );
+    // Set slider based on current count
+    updateSliderFromCount(
+      item.currentCount !== undefined
+        ? item.currentCount
+        : item["min stock amount"] || 0
+    );
   }, [item]);
 
   const handleCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,12 +124,6 @@ export default function ItemCountCard({
       countedAt: new Date().toISOString(),
     };
 
-    // // Initialize Supabase client
-    // const supabase = createClient(
-    //   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    //   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-    // );
-
     try {
       // Update the item in the database using the correct column names
       const { error } = await supabase
@@ -137,37 +143,55 @@ export default function ItemCountCard({
 
     // Continue with the existing functionality
     onUpdateItem(updatedItem);
-    onNext();
+    if (onNext) onNext();
+  };
+
+  const handleSingleUpdate = async () => {
+    // Create updated item with new count
+    const updatedItem = {
+      ...item,
+      currentCount: stockCount,
+      countedAt: new Date().toISOString(),
+    };
+
+    try {
+      // Update the item in the database
+      const { error } = await supabase
+        .from("notes")
+        .update({
+          "current quantity": stockCount,
+          "last quantity update": new Date().toISOString(),
+        })
+        .eq("id", item.id);
+
+      if (error) {
+        console.error("Error updating item:", error);
+      }
+    } catch (err) {
+      console.error("Failed to update item in database:", err);
+    }
+
+    // Pass the updated item back
+    onUpdateItem(updatedItem);
+
+    // Close the card if we're in single mode
+    if (onClose) onClose();
   };
 
   const countDifference = stockCount - (item["min stock amount"] || 0);
   return (
     <div className="max-w-md mx-auto md:max-w-2xl lg:max-w-full lg:w-full">
       <div className="border rounded-lg p-6 shadow-sm space-y-6 md:p-8 lg:p-10">
-        {/* <div className="space-y-2 md:flex md:justify-between md:items-start">
-          <div>
-            <h3 className="text-xl font-semibold md:text-2xl lg:text-3xl">
-              {item.name}
-            </h3>
-            <p className="text-sm text-muted-foreground md:text-base">
-              Location: {item.location}
-            </p>
-            <p className="text-sm text-muted-foreground md:text-base">
-              Min Stock: {item["min stock amount"]}
-            </p>
-          </div>
-          <span className="text-sm text-muted-foreground block mt-2 md:mt-0 lg:text-base">
-            {progress.current}/{progress.total} items
-          </span>
-        </div> */}
         <div className="space-y-2">
           <div>
             <h3 className="text-xl font-semibold md:text-2xl lg:text-3xl">
               {item.name}
             </h3>
-            <p className="text-sm text-muted-foreground md:text-base">
-              {progress.current}/{progress.total} items
-            </p>
+            {mode === "navigation" && progress && (
+              <p className="text-sm text-muted-foreground md:text-base">
+                {progress.current}/{progress.total} items
+              </p>
+            )}
             <p className="text-sm text-muted-foreground md:text-base">
               <span className="font-bold">Location:</span> {item.location}
             </p>
@@ -259,22 +283,43 @@ export default function ItemCountCard({
           </div>
         </div>
 
+        {/* Conditional rendering for buttons */}
         <div className="flex justify-between pt-4 md:pt-8 lg:pt-10">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={onBack}
-            className="md:h-12 md:w-12 lg:h-14 lg:w-14"
-          >
-            <ArrowLeft className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />
-          </Button>
-          <Button
-            onClick={saveAndContinue}
-            className="md:px-8 md:py-6 md:text-lg lg:px-10 lg:py-7 lg:text-xl"
-          >
-            <ArrowRight className="h-4 w-4 mr-2 md:h-5 md:w-5 lg:h-6 lg:w-6" />
-            Next
-          </Button>
+          {mode === "navigation" ? (
+            <>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onBack}
+                className="md:h-12 md:w-12 lg:h-14 lg:w-14"
+              >
+                <ArrowLeft className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />
+              </Button>
+              <Button
+                onClick={saveAndContinue}
+                className="md:px-8 md:py-6 md:text-lg lg:px-10 lg:py-7 lg:text-xl"
+              >
+                <ArrowRight className="h-4 w-4 mr-2 md:h-5 md:w-5 lg:h-6 lg:w-6" />
+                Next
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                onClick={onClose}
+                className="md:px-6 md:py-4 md:text-base"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSingleUpdate}
+                className="md:px-8 md:py-6 md:text-lg lg:px-10 lg:py-7 lg:text-xl"
+              >
+                Update Count
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>
