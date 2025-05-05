@@ -43,12 +43,17 @@ export const updateSession = async (request: NextRequest) => {
 
     const pathname = request.nextUrl.pathname;
 
+    // Define public paths that don't require authentication
+    const publicPaths = ["/sign-in", "/sign-up"];
+
     // Redirect logic
-    if (!user && pathname !== "/sign-in") {
+    // If user is not logged in and the path is not public, redirect to sign-in
+    if (!user && !publicPaths.includes(pathname)) {
       return NextResponse.redirect(new URL("/sign-in", request.url));
     }
 
-    if (user && pathname === "/sign-in") {
+    // If user is logged in and tries to access sign-in or sign-up, redirect to items
+    if (user && publicPaths.includes(pathname)) {
       return NextResponse.redirect(new URL("/items", request.url));
     }
 
