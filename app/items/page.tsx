@@ -131,7 +131,7 @@ function InventoryDisplay() {
     }
   };
 
-  const updateItemCount = (updatedItem: InventoryItem) => {
+  const updateItemCount = async (updatedItem: InventoryItem & { currentCount?: number }) => {
     // Update the countedItems array by adding this item
     const existingItemIndex = countedItems.findIndex(
       (item) => item.id === updatedItem.id
@@ -148,6 +148,35 @@ function InventoryDisplay() {
     // Continue with existing functionality for countableItems
     const updatedCountableItems = [...countableItems];
     updatedCountableItems[currentItemIndex] = updatedItem;
+
+    // Update database
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("notes")
+      .update({
+        "current quantity": updatedItem.currentCount || updatedItem["current quantity"] || 0,
+        "last quantity update": new Date().toISOString(),
+      })
+      .eq("id", updatedItem.id);
+
+    if (error) {
+      console.error("Error updating item in database:", error);
+    }
+  } catch (err) {
+    console.error("Failed to update item in database:", err);
+  }
+
+  // Also update the main items array
+  const updatedItems = items.map((item) => {
+    if (item.id === updatedItem.id) {
+      const newItem = { ...item };
+      newItem["current quantity"] = updatedItem.currentCount || updatedItem["current quantity"] || 0;
+      return newItem;
+    }
+    return item;
+  });
+  setItems(updatedItems);
 
     // Remove the React.useMemo hook and calculate directly
     // const uniqueProductGroups = React.useMemo(() => {
@@ -599,7 +628,11 @@ function InventoryDisplay() {
               {/* Item counting card */}
               {countableItems[currentItemIndex] && (
                 <ItemCountCard
-                  item={countableItems[currentItemIndex]}
+                  item={{
+                    ...countableItems[currentItemIndex],
+                    // Ensure the component always gets the most current count from our state
+                    currentCount: countableItems[currentItemIndex]["current quantity"] || 0
+                  }}
                   onUpdateItem={updateItemCount}
                   onNext={goToNextItem}
                   onBack={goToPrevItem}
