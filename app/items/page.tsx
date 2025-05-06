@@ -27,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import React from "react";
 import ItemCountCard from "@/components/custom/itemCountCard";
 import ReceiptView from "@/components/custom/recieptView";
+import AddItemModal from "@/components/add-item-modal";
 // import ItemCountCard, { InventoryItem } from "@/components/ItemCountCard";
 
 // Define the type for your inventory items
@@ -394,6 +395,7 @@ function InventoryDisplay() {
                   ))}
               </select>
             </div>
+            <AddItemModal/>
           </div>
         )}
 
