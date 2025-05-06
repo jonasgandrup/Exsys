@@ -83,6 +83,11 @@ function InventoryDisplay() {
     fetchData();
   }, []);
 
+  // Reset to the first page whenever the search query or filter group changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterGroup]);
+
   // Filter items based on search query
   const filteredItems = items
     .filter(
