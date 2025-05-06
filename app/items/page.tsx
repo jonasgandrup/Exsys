@@ -20,6 +20,7 @@ import {
   Receipt,
   Filter,
   X,
+  Trash2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,17 @@ import React from "react";
 import ItemCountCard from "@/components/custom/itemCountCard";
 import ReceiptView from "@/components/custom/recieptView";
 import AddItemModal from "@/components/add-item-modal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 // import ItemCountCard, { InventoryItem } from "@/components/ItemCountCard";
 
 // Define the type for your inventory items
@@ -197,6 +209,20 @@ function InventoryDisplay() {
 
     // Enable receipt tab
     setCountingComplete(true);
+  };
+
+  const handleDeleteItem = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent the click from opening the item
+    const supabase = await createClient();
+    const { error } = await supabase.from("notes").delete().eq("id", id);
+    
+    if (error) {
+      console.error("Error deleting item:", error);
+      alert("Failed to delete item");
+    } else {
+      // Remove the item from the local state
+      setItems(items.filter(item => item.id !== id));
+    }
   };
 
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
@@ -416,12 +442,43 @@ function InventoryDisplay() {
                   paginatedItems.map((item) => (
                     <div
                       key={item.id}
-                      className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                      className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer relative"
                       onClick={() => handleGridItemClick(item)}
                     >
                       <div className="flex flex-col space-y-2">
-                        <div>
+                      <div className="flex justify-between items-start">
                           <ProductGroupTag group={item["product group"]} />
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-transparent absolute top-2 right-2"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Item</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{item.name}"? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                              <AlertDialogCancel onClick={(e) => e.stopPropagation()}>
+                                Cancel
+                              </AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={(e) => handleDeleteItem(item.id, e)}
+                                  className="bg-red-500 hover:bg-red-600"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                         <h3 className="font-medium">{item.name}</h3>
                       </div>
