@@ -76,7 +76,7 @@ function InventoryDisplay() {
         const uniqueGroups = Array.from(
           new Set(data.map((item) => item["product group"]))
         );
-        console.log("Unique product groups:", uniqueGroups);
+        //console.log("Unique product groups:", uniqueGroups);
       }
       setItems(data || []);
     }
@@ -395,7 +395,7 @@ function InventoryDisplay() {
                   ))}
               </select>
             </div>
-            <AddItemModal/>
+            <AddItemModal />
           </div>
         )}
 
