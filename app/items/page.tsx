@@ -175,37 +175,44 @@ function InventoryDisplay() {
     updatedItem: InventoryItem & { currentCount?: number }
   ) => {
     // Update the items array with the updated item
-    const updatedItems = items.map((item) =>
-      item.id === updatedItem.id ? updatedItem : item
-    );
+    const updatedItems = items.map((item) => {
+      if (item.id === updatedItem.id) {
+        // Make sure to update the "current quantity" property with the new value
+        const newItem = { ...updatedItem };
+        // Use the new current count as the current quantity
+        newItem["current quantity"] = updatedItem.currentCount || updatedItem["current quantity"] || 0;
+        return newItem;
+      }
+      return item;
+    });
     setItems(updatedItems);
 
     // Now include ALL items in countedItems with proper current quantity values
     const allCountedItems = updatedItems
-      .filter((item) => (item["min stock amount"] || 0) > 0)
-      .map((item) => {
-        // For TypeScript, create a new object with the optional currentCount property
-        const countedItem = { ...item } as InventoryItem & {
-          currentCount?: number;
-        };
+    .filter((item) => (item["min stock amount"] || 0) > 0)
+    .map((item) => {
+      // For TypeScript, create a new object with the optional currentCount property
+      const countedItem = { ...item } as InventoryItem & {
+        currentCount?: number;
+      };
 
-        if (item.id === updatedItem.id) {
-          // This is the item we just counted
-          countedItem.currentCount =
-            updatedItem.currentCount || updatedItem["current quantity"] || 0;
-        } else {
-          // For other items, use the database value
-          countedItem.currentCount = item["current quantity"] || 0;
-        }
+      if (item.id === updatedItem.id) {
+        // This is the item we just counted
+        countedItem.currentCount =
+          updatedItem.currentCount || updatedItem["current quantity"] || 0;
+      } else {
+        // For other items, use the database value
+        countedItem.currentCount = item["current quantity"] || 0;
+      }
 
-        return countedItem;
-      });
+      return countedItem;
+    });
     // Set all items as "counted" items so they appear in the receipt
     setCountedItems(allCountedItems);
 
     // After updating, navigate to receipt view and clear selected item
     setSelectedGridItem(null);
-    setActiveTab("receipt");
+    //setActiveTab("receipt");
 
     // Enable receipt tab
     setCountingComplete(true);
