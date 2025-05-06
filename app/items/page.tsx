@@ -13,6 +13,7 @@ import {
   X,
   Trash2,
   Settings,
+  MoreHorizontal,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
+import EditItemModal from "@/components/edit-item-modal";
 // import ItemCountCard, { InventoryItem } from "@/components/ItemCountCard";
 
 // Define the type for your inventory items
@@ -84,7 +86,11 @@ function InventoryDisplay() {
   React.useEffect(() => {
     if (items.length > 0 && itemOrder.length === 0) {
       // Initialize item order with item IDs
-      setItemOrder(items.filter(item => (item["min stock amount"] || 0) > 0).map(item => item.id));
+      setItemOrder(
+        items
+          .filter((item) => (item["min stock amount"] || 0) > 0)
+          .map((item) => item.id)
+      );
     }
   }, [items]);
 
@@ -107,46 +113,48 @@ function InventoryDisplay() {
   }, []);
 
   // Add this effect to save the item order to localStorage
-React.useEffect(() => {
-  if (itemOrder.length > 0) {
-    localStorage.setItem('inventoryItemOrder', JSON.stringify(itemOrder));
-  }
-}, [itemOrder]);
-
-// Add this code to the existing useEffect that fetches data
-React.useEffect(() => {
-  async function fetchData() {
-    const supabase = await createClient();
-    const { data } = await supabase.from("notes").select();
-    // Extract unique product groups
-    if (data && data.length > 0) {
-      const uniqueGroups = Array.from(
-        new Set(data.map((item) => item["product group"]))
-      );
+  React.useEffect(() => {
+    if (itemOrder.length > 0) {
+      localStorage.setItem("inventoryItemOrder", JSON.stringify(itemOrder));
     }
-    setItems(data || []);
-    
-    // Load saved item order from localStorage
-    const savedOrder = localStorage.getItem('inventoryItemOrder');
-    if (savedOrder) {
-      try {
-        setItemOrder(JSON.parse(savedOrder));
-      } catch (e) {
-        console.error('Error loading saved item order:', e);
+  }, [itemOrder]);
+
+  // Add this code to the existing useEffect that fetches data
+  React.useEffect(() => {
+    async function fetchData() {
+      const supabase = await createClient();
+      const { data } = await supabase.from("notes").select();
+      // Extract unique product groups
+      if (data && data.length > 0) {
+        const uniqueGroups = Array.from(
+          new Set(data.map((item) => item["product group"]))
+        );
+      }
+      setItems(data || []);
+
+      // Load saved item order from localStorage
+      const savedOrder = localStorage.getItem("inventoryItemOrder");
+      if (savedOrder) {
+        try {
+          setItemOrder(JSON.parse(savedOrder));
+        } catch (e) {
+          console.error("Error loading saved item order:", e);
+        }
       }
     }
-  }
 
-  fetchData();
-}, []);
+    fetchData();
+  }, []);
 
-   // Add these functions to handle reordering
-   const moveItemUp = (itemId: number) => {
+  // Add these functions to handle reordering
+  const moveItemUp = (itemId: number) => {
     const currentIndex = itemOrder.indexOf(itemId);
     if (currentIndex > 0) {
       const newOrder = [...itemOrder];
-      [newOrder[currentIndex], newOrder[currentIndex - 1]] = 
-        [newOrder[currentIndex - 1], newOrder[currentIndex]];
+      [newOrder[currentIndex], newOrder[currentIndex - 1]] = [
+        newOrder[currentIndex - 1],
+        newOrder[currentIndex],
+      ];
       setItemOrder(newOrder);
     }
   };
@@ -155,8 +163,10 @@ React.useEffect(() => {
     const currentIndex = itemOrder.indexOf(itemId);
     if (currentIndex < itemOrder.length - 1) {
       const newOrder = [...itemOrder];
-      [newOrder[currentIndex], newOrder[currentIndex + 1]] = 
-        [newOrder[currentIndex + 1], newOrder[currentIndex]];
+      [newOrder[currentIndex], newOrder[currentIndex + 1]] = [
+        newOrder[currentIndex + 1],
+        newOrder[currentIndex],
+      ];
       setItemOrder(newOrder);
       setIsSettingsOpen(true);
     }
@@ -180,16 +190,19 @@ React.useEffect(() => {
   // This gets items in the custom order
   const getOrderedItems = () => {
     const countableItemsById = new Map(
-      filteredItems.filter(item => (item["min stock amount"] || 0) > 0).map(item => [item.id, item])
+      filteredItems
+        .filter((item) => (item["min stock amount"] || 0) > 0)
+        .map((item) => [item.id, item])
     );
-    
+
     return itemOrder
-      .filter(id => countableItemsById.has(id))
-      .map(id => countableItemsById.get(id)!)
+      .filter((id) => countableItemsById.has(id))
+      .map((id) => countableItemsById.get(id)!)
       .concat(
         // Add any new items that aren't in the order yet
-        filteredItems.filter(item => 
-          (item["min stock amount"] || 0) > 0 && !itemOrder.includes(item.id)
+        filteredItems.filter(
+          (item) =>
+            (item["min stock amount"] || 0) > 0 && !itemOrder.includes(item.id)
         )
       )
       .slice(0, 10); // Keep your limit of 10 items
@@ -203,14 +216,13 @@ React.useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, filterGroup]);
 
-  
   // const countableItems = filteredItems.filter(
   //   (item) => (item["min stock amount"] || 0) > 0
   // );
   //todo: for testing only!!!
   //const countableItems = filteredItems
-    //.filter((item) => (item["min stock amount"] || 0) > 0)
-    //.slice(0, 10); // Limit to first 10 items for testing
+  //.filter((item) => (item["min stock amount"] || 0) > 0)
+  //.slice(0, 10); // Limit to first 10 items for testing
 
   // Functions for navigating between items
   const goToNextItem = () => {
@@ -422,69 +434,8 @@ React.useEffect(() => {
     );
   }
 
-  // Rest of your component remains the same
   return (
     <div className="flex flex-col space-y-4">
-      {/* Search and filter section */}
-      {/* <div className="flex items-center space-x-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            type="search"
-            placeholder="Search items..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div> */}
-
-      {/* Group Filter Dropdown */}
-      {/* <div className="relative">
-          <Button
-            variant="outline"
-            className={`flex items-center gap-2 ${filterGroup ? "pr-8" : ""}`} // Add padding-right when filter is active
-            onClick={() => document.getElementById("groupFilter")?.click()}
-          >
-            <Filter className="h-4 w-4" />
-            {filterGroup ? (
-              <span className="max-w-[150px] truncate">{filterGroup}</span> // Increased max width from 100px to 150px
-            ) : (
-              "Filter Group"
-            )}
-          </Button> */}
-
-      {/* Move the clear button outside the parent button */}
-      {/* {filterGroup && (
-            <div
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 p-0 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer hover:bg-gray-300"
-              style={{ marginRight: "2px" }} // Add extra margin to the right
-              onClick={(e) => {
-                e.stopPropagation();
-                setFilterGroup(null);
-              }}
-            >
-              <X className="h-3 w-3" />
-            </div>
-          )} */}
-
-      {/* <select
-            id="groupFilter"
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            value={filterGroup || ""}
-            onChange={(e) => setFilterGroup(e.target.value || null)}
-          >
-            <option value="">All Groups</option>
-            {Array.from(new Set(items.map((item) => item["product group"])))
-              .sort()
-              .map((group) => (
-                <option key={group} value={group}>
-                  {group}
-                </option>
-              ))}
-          </select>
-        </div>
-      </div> */}
-
       {/* Tabs for different views */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
@@ -502,75 +453,86 @@ React.useEffect(() => {
           </TabsTrigger>
         </TabsList>
         {/* Settings Button */}
-          <div className="flex justify-end mt-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsSettingsOpen(true)}
-              className="flex items-center gap-1"
-            >
-              <Settings className="h-4 w-4" />
-              <span>Counting Order</span>
-            </Button>
-          </div>
+        <div className="flex justify-end mt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsSettingsOpen(true)}
+            className="flex items-center gap-1"
+          >
+            <Settings className="h-4 w-4" />
+            <span>Counting Order</span>
+          </Button>
+        </div>
 
-          {/* Settings Dialog */}
-            <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Item Settings</DialogTitle>
-                  <DialogDescription>
-                    Adjust the position of items by editing the number or using the arrow buttons.
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <div className="flex flex-col space-y-4 mt-4 max-h-[60vh] overflow-y-auto">
-                  {itemOrder.length > 0 && filteredItems
-                    .filter(item => itemOrder.includes(item.id))
-                    .sort((a, b) => itemOrder.indexOf(a.id) - itemOrder.indexOf(b.id))
-                    .map((item, index) => (
-                      <div key={item.id} className="border rounded-lg p-4 flex justify-between items-center">
-                        <div>
-                          <span className="font-medium">Item {index + 1}</span>
-                          <p className="text-sm text-muted-foreground">{item.name}</p>
+        {/* Settings Dialog */}
+        <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Item Settings</DialogTitle>
+              <DialogDescription>
+                Adjust the position of items by editing the number or using the
+                arrow buttons.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex flex-col space-y-4 mt-4 max-h-[60vh] overflow-y-auto">
+              {itemOrder.length > 0 &&
+                filteredItems
+                  .filter((item) => itemOrder.includes(item.id))
+                  .sort(
+                    (a, b) => itemOrder.indexOf(a.id) - itemOrder.indexOf(b.id)
+                  )
+                  .map((item, index) => (
+                    <div
+                      key={item.id}
+                      className="border rounded-lg p-4 flex justify-between items-center"
+                    >
+                      <div>
+                        <span className="font-medium">Item {index + 1}</span>
+                        <p className="text-sm text-muted-foreground">
+                          {item.name}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="bg-muted rounded-md px-3 py-1">
+                          {index + 1}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="bg-muted rounded-md px-3 py-1">{index + 1}</div>
-                          <div className="text-muted">#{index + 1}</div>
-                          <div className="flex flex-col">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() => moveItemUp(item.id)}
-                              disabled={index === 0}
-                            >
-                              <span className="sr-only">Move up</span>
-                              <ArrowUpDown className="h-4 w-4 rotate-180" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() => moveItemDown(item.id)}
-                              disabled={index === itemOrder.length - 1}
-                            >
-                              <span className="sr-only">Move down</span>
-                              <ArrowUpDown className="h-4 w-4" />
-                            </Button>
-                          </div>
+                        <div className="text-muted">#{index + 1}</div>
+                        <div className="flex flex-col">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => moveItemUp(item.id)}
+                            disabled={index === 0}
+                          >
+                            <span className="sr-only">Move up</span>
+                            <ArrowUpDown className="h-4 w-4 rotate-180" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => moveItemDown(item.id)}
+                            disabled={index === itemOrder.length - 1}
+                          >
+                            <span className="sr-only">Move down</span>
+                            <ArrowUpDown className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                    ))}
-                </div>
-                
-                <div className="flex justify-end mt-4">
-                  <DialogClose asChild>
-                    <Button>Done</Button>
-                  </DialogClose>
-                </div>
-              </DialogContent>
-            </Dialog>
+                    </div>
+                  ))}
+            </div>
+
+            <div className="flex justify-end mt-4">
+              <DialogClose asChild>
+                <Button>Done</Button>
+              </DialogClose>
+            </div>
+          </DialogContent>
+        </Dialog>
         {/* Only show search and filter when grid tab is active */}
         {activeTab === "grid" && (
           <div className="flex items-center space-x-2 mt-4">
@@ -656,6 +618,18 @@ React.useEffect(() => {
                       <div className="flex flex-col space-y-2">
                         <div className="flex justify-between items-start">
                           <ProductGroupTag group={item["product group"]} />
+                          {/* Edit Button */}
+                          <EditItemModal
+                            item={item}
+                            onItemUpdated={async () => {
+                              // Refresh data after an update
+                              const supabase = await createClient();
+                              const { data } = await supabase
+                                .from("notes")
+                                .select();
+                              setItems(data || []);
+                            }}
+                          />
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
