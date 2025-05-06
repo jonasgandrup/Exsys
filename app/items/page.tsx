@@ -192,7 +192,7 @@ function InventoryDisplay() {
 
     // After updating, navigate to receipt view and clear selected item
     setSelectedGridItem(null);
-    setActiveTab("receipt");
+    // setActiveTab("receipt");
 
     // Enable receipt tab
     setCountingComplete(true);
