@@ -12,6 +12,7 @@ import {
   Filter,
   X,
   Trash2,
+  MoreHorizontal,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import EditItemModal from "@/components/edit-item-modal";
 // import ItemCountCard, { InventoryItem } from "@/components/ItemCountCard";
 
 // Define the type for your inventory items
@@ -324,69 +326,8 @@ function InventoryDisplay() {
     );
   }
 
-  // Rest of your component remains the same
   return (
     <div className="flex flex-col space-y-4">
-      {/* Search and filter section */}
-      {/* <div className="flex items-center space-x-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            type="search"
-            placeholder="Search items..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div> */}
-
-      {/* Group Filter Dropdown */}
-      {/* <div className="relative">
-          <Button
-            variant="outline"
-            className={`flex items-center gap-2 ${filterGroup ? "pr-8" : ""}`} // Add padding-right when filter is active
-            onClick={() => document.getElementById("groupFilter")?.click()}
-          >
-            <Filter className="h-4 w-4" />
-            {filterGroup ? (
-              <span className="max-w-[150px] truncate">{filterGroup}</span> // Increased max width from 100px to 150px
-            ) : (
-              "Filter Group"
-            )}
-          </Button> */}
-
-      {/* Move the clear button outside the parent button */}
-      {/* {filterGroup && (
-            <div
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 p-0 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer hover:bg-gray-300"
-              style={{ marginRight: "2px" }} // Add extra margin to the right
-              onClick={(e) => {
-                e.stopPropagation();
-                setFilterGroup(null);
-              }}
-            >
-              <X className="h-3 w-3" />
-            </div>
-          )} */}
-
-      {/* <select
-            id="groupFilter"
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            value={filterGroup || ""}
-            onChange={(e) => setFilterGroup(e.target.value || null)}
-          >
-            <option value="">All Groups</option>
-            {Array.from(new Set(items.map((item) => item["product group"])))
-              .sort()
-              .map((group) => (
-                <option key={group} value={group}>
-                  {group}
-                </option>
-              ))}
-          </select>
-        </div>
-      </div> */}
-
       {/* Tabs for different views */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
@@ -488,6 +429,18 @@ function InventoryDisplay() {
                       <div className="flex flex-col space-y-2">
                         <div className="flex justify-between items-start">
                           <ProductGroupTag group={item["product group"]} />
+                          {/* Edit Button */}
+                          <EditItemModal
+                            item={item}
+                            onItemUpdated={async () => {
+                              // Refresh data after an update
+                              const supabase = await createClient();
+                              const { data } = await supabase
+                                .from("notes")
+                                .select();
+                              setItems(data || []);
+                            }}
+                          />
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
