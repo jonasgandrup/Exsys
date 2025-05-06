@@ -94,22 +94,20 @@ function InventoryDisplay() {
     }
   }, [items]);
 
-  // Use useEffect to fetch data when the component mounts
+  // Add event listener to open settings dialog from header button
   React.useEffect(() => {
-    async function fetchData() {
-      const supabase = await createClient();
-      const { data } = await supabase.from("notes").select();
-      // Extract unique product groups
-      if (data && data.length > 0) {
-        const uniqueGroups = Array.from(
-          new Set(data.map((item) => item["product group"]))
-        );
-        //console.log("Unique product groups:", uniqueGroups);
-      }
-      setItems(data || []);
-    }
+    const handleOpenSettings = () => {
+      setIsSettingsOpen(true);
+    };
 
-    fetchData();
+    window.addEventListener("openCountingOrderSettings", handleOpenSettings);
+
+    return () => {
+      window.removeEventListener(
+        "openCountingOrderSettings",
+        handleOpenSettings
+      );
+    };
   }, []);
 
   // Add this effect to save the item order to localStorage
@@ -123,28 +121,75 @@ function InventoryDisplay() {
   React.useEffect(() => {
     async function fetchData() {
       const supabase = await createClient();
-      const { data } = await supabase.from("notes").select();
-      // Extract unique product groups
+
+      // Use correct column name format
+      const { data } = await supabase
+        .from("notes")
+        .select()
+        .order("counting number", { ascending: true, nullsFirst: false });
+
       if (data && data.length > 0) {
         const uniqueGroups = Array.from(
           new Set(data.map((item) => item["product group"]))
         );
       }
+
       setItems(data || []);
 
-      // Load saved item order from localStorage
-      const savedOrder = localStorage.getItem("inventoryItemOrder");
-      if (savedOrder) {
-        try {
-          setItemOrder(JSON.parse(savedOrder));
-        } catch (e) {
-          console.error("Error loading saved item order:", e);
+      // Set the item order based on database order
+      const orderedIds =
+        data
+          ?.filter((item) => item["counting number"] != null)
+          .sort(
+            (a, b) => (a["counting number"] || 0) - (b["counting number"] || 0)
+          )
+          .map((item) => item.id) || [];
+
+      if (orderedIds.length > 0) {
+        setItemOrder(orderedIds);
+      } else {
+        // Fall back to localStorage if no database order exists
+        const savedOrder = localStorage.getItem("inventoryItemOrder");
+        if (savedOrder) {
+          try {
+            setItemOrder(JSON.parse(savedOrder));
+          } catch (e) {
+            console.error("Error loading saved item order:", e);
+          }
         }
       }
     }
 
     fetchData();
   }, []);
+
+  const saveItemOrder = async () => {
+    try {
+      const supabase = await createClient();
+
+      // Process updates sequentially for better error handling
+      for (let i = 0; i < itemOrder.length; i++) {
+        const itemId = itemOrder[i];
+        const order = i + 1;
+
+        const { error } = await supabase
+          .from("notes")
+          .update({ "counting number": order }) // Use quotes around the property name with space
+          .eq("id", itemId);
+
+        if (error) {
+          console.error(`Error updating item ${itemId}:`, error);
+          return false;
+        }
+      }
+
+      console.log("All items updated successfully");
+      return true;
+    } catch (err) {
+      console.error("Failed to update item orders:", err);
+      return false;
+    }
+  };
 
   // Add these functions to handle reordering
   const moveItemUp = (itemId: number) => {
@@ -287,13 +332,6 @@ function InventoryDisplay() {
       return item;
     });
     setItems(updatedItems);
-
-    // Remove the React.useMemo hook and calculate directly
-    // const uniqueProductGroups = React.useMemo(() => {
-    //   return Array.from(
-    //     new Set(items.map((item) => item["product group"]))
-    //   ).sort();
-    // }, [items]);
 
     // Check if this was the last item
     if (currentItemIndex === countableItems.length - 1) {
@@ -453,7 +491,7 @@ function InventoryDisplay() {
           </TabsTrigger>
         </TabsList>
         {/* Settings Button */}
-        <div className="flex justify-end mt-2">
+        {/* <div className="flex justify-end mt-2">
           <Button
             variant="ghost"
             size="sm"
@@ -463,7 +501,7 @@ function InventoryDisplay() {
             <Settings className="h-4 w-4" />
             <span>Counting Order</span>
           </Button>
-        </div>
+        </div> */}
 
         {/* Settings Dialog */}
         <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
@@ -528,7 +566,20 @@ function InventoryDisplay() {
 
             <div className="flex justify-end mt-4">
               <DialogClose asChild>
-                <Button>Done</Button>
+                <Button
+                  onClick={async () => {
+                    console.log("Saving item order:", itemOrder);
+                    const success = await saveItemOrder();
+                    console.log("Save result:", success);
+                    if (success) {
+                      console.log("Item order updated successfully");
+                    } else {
+                      console.error("Failed to update item order");
+                    }
+                  }}
+                >
+                  Done
+                </Button>
               </DialogClose>
             </div>
           </DialogContent>
