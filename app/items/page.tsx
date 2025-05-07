@@ -82,6 +82,39 @@ function InventoryDisplay() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [itemOrder, setItemOrder] = useState<Array<number>>([]);
 
+  const refreshData = async () => {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("notes")
+      .select()
+      .order("counting number", { ascending: true, nullsFirst: false });
+
+    setItems(data || []);
+
+    // Set the item order based on database order
+    const orderedIds =
+      data
+        ?.filter((item) => item["counting number"] != null)
+        .sort(
+          (a, b) => (a["counting number"] || 0) - (b["counting number"] || 0)
+        )
+        .map((item) => item.id) || [];
+
+    if (orderedIds.length > 0) {
+      setItemOrder(orderedIds);
+    } else {
+      // Fall back to localStorage if no database order exists
+      const savedOrder = localStorage.getItem("inventoryItemOrder");
+      if (savedOrder) {
+        try {
+          setItemOrder(JSON.parse(savedOrder));
+        } catch (e) {
+          console.error("Error loading saved item order:", e);
+        }
+      }
+    }
+  };
+
   // Add this effect to initialize the item order when items are loaded
   React.useEffect(() => {
     if (items.length > 0 && itemOrder.length === 0) {
@@ -642,7 +675,7 @@ function InventoryDisplay() {
                   ))}
               </select>
             </div>
-            <AddItemModal />
+            <AddItemModal onItemAdded={refreshData} />
           </div>
         )}
 
