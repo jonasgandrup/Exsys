@@ -263,7 +263,22 @@ function InventoryDisplay() {
             .toLowerCase()
             .includes(searchQuery.toLowerCase()))
     )
-    .sort((a, b) => a.id - b.id);
+    .sort((a, b) => {
+      // If both items are in the custom order, sort by that order
+      const indexA = itemOrder.indexOf(a.id);
+      const indexB = itemOrder.indexOf(b.id);
+      
+      // If both items are in the order, sort by the order
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      // If only one item is in the order, prioritize it
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      
+      // Otherwise sort by ID as fallback
+      return a.id - b.id;
+    });
 
   // This gets items in the custom order
   const getOrderedItems = () => {
