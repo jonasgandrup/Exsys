@@ -282,8 +282,8 @@ function InventoryDisplay() {
           (item) =>
             (item["min stock amount"] || 0) > 0 && !itemOrder.includes(item.id)
         )
-      )
-      .slice(0, 10); // Keep your limit of 10 items
+      );
+    // .slice(0, 10); // Keep your limit of 10 items
   };
 
   // Update this line to use ordered items
